@@ -824,21 +824,16 @@ class DrupalContext extends MinkContext implements DrupalAwareInterface, Transla
   }
 
   /**
-   * Creates and authenticates a user with the given role via Drush.
+   * Creates and authenticates a user with the given role(s) via Drush.
    *
-   * @Given /^I am logged in as a user with the "(?P<role>[^"]*)" role$/
+   * @Given /^I am logged in as a user with the "(?P<role>[^"]*)" role(?:|s)$/
    */
-  public function assertAuthenticatedByRole($role) {
-    // Check if a user with this role is already logged in.
-    if ($this->loggedIn() && $this->user && isset($this->user->role) && $this->user->role == $role) {
-      return TRUE;
-    }
-
+  public function assertAuthenticatedByRole($roles) {
     // Create user (and project)
     $user = (object) array(
       'name' => $this->getDrupal()->random->name(8),
       'pass' => $this->getDrupal()->random->name(16),
-      'role' => $role,
+      'role' => 'authenticated user',
     );
     $user->mail = "{$user->name}@example.com";
 
@@ -847,11 +842,16 @@ class DrupalContext extends MinkContext implements DrupalAwareInterface, Transla
 
     $this->users[$user->name] = $this->user = $user;
 
-    if ($role == 'authenticated user') {
-      // Nothing to do.
-    }
-    else {
-      $this->getDriver()->userAddRole($user, $role);
+    $roles = explode(',', $roles);
+    $roles = array_map('trim', $roles);
+
+    foreach ($roles as $role) {
+      if ($role == 'authenticated user') {
+        // Nothing to do.
+      }
+      else {
+        $this->getDriver()->userAddRole($user, $role);
+      }
     }
 
     // Login.
